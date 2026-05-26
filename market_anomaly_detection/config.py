@@ -9,10 +9,22 @@ from typing import List, Dict, Any
 @dataclass
 class DataConfig:
     """Data loading configuration"""
-    csv_path: Path = Path("data/msft_hourly(in).csv")
+    csv_path: Path = Path("data/raw/msft_hourly(in).csv")
     datetime_column: str = "quote_datetime"
     price_columns: List[str] = field(default_factory=lambda: ["open", "high", "low", "close"])
     volume_columns: List[str] = field(default_factory=lambda: ["trade_volume"])
+    required_columns: List[str] = field(default_factory=lambda: [
+        "quote_datetime",
+        "open",
+        "high",
+        "low",
+        "close",
+        "bid",
+        "ask",
+        "mid",
+        "vwap",
+    ])
+    missing_value_strategy: str = "drop"
 
 
 @dataclass

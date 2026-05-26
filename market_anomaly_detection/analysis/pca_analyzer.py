@@ -13,6 +13,7 @@ class PCAAnalyzer(BaseAnalyzer):
     """Principal Component Analysis for dimensionality reduction"""
     
     def __init__(self, n_components: int = 2, random_state: int = 42):
+        """Configure PCA component count and RNG seed."""
         super().__init__("PCAAnalyzer")
         self.n_components = n_components
         self.random_state = random_state
@@ -72,6 +73,7 @@ class CorrelationAnalyzer(BaseAnalyzer):
     """Correlation analysis"""
     
     def __init__(self, method: str = 'spearman'):
+        """Set the correlation method used for analysis."""
         super().__init__("CorrelationAnalyzer")
         self.method = method
         self.correlation_matrix = None
@@ -111,6 +113,7 @@ class AnomalyStatisticsAnalyzer(BaseAnalyzer):
     """Analyze anomaly detection statistics"""
     
     def __init__(self):
+        """Initialize the anomaly statistics analyzer."""
         super().__init__("AnomalyStatisticsAnalyzer")
         
     def analyze(self, data: pd.DataFrame, anomaly_col: str = 'is_anomaly') -> Dict[str, Any]:

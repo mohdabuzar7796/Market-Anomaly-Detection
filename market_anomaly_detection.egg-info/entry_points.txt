@@ -1,0 +1,2 @@
+[console_scripts]
+market-anomaly-detection = market_anomaly_detection.modeling.predict:cli_main

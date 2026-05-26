@@ -14,6 +14,7 @@ class ZScoreDetector(BaseAnomalyDetector):
     """Z-score based anomaly detection"""
     
     def __init__(self, threshold: int = 3, window: int = 30):
+        """Set Z-score threshold and rolling window size."""
         super().__init__("ZScoreDetector")
         self.threshold = threshold
         self.window = window
@@ -51,6 +52,7 @@ class IQRDetector(BaseAnomalyDetector):
     """IQR-based anomaly detection"""
     
     def __init__(self, window: int = 30, multiplier: float = 1.5):
+        """Set rolling window size and IQR multiplier."""
         super().__init__("IQRDetector")
         self.window = window
         self.multiplier = multiplier
@@ -96,6 +98,7 @@ class IsolationForestDetector(BaseAnomalyDetector):
     """Isolation Forest based anomaly detection"""
     
     def __init__(self, n_estimators: int = 200, contamination: float = 0.01, random_state: int = 42):
+        """Configure Isolation Forest hyperparameters."""
         super().__init__("IsolationForestDetector")
         self.n_estimators = n_estimators
         self.contamination = contamination
@@ -128,6 +131,7 @@ class LOFDetector(BaseAnomalyDetector):
     """Local Outlier Factor based anomaly detection"""
     
     def __init__(self, n_neighbors: int = 20, contamination: float = 0.01):
+        """Configure LOF hyperparameters."""
         super().__init__("LOFDetector")
         self.n_neighbors = n_neighbors
         self.contamination = contamination
@@ -157,10 +161,12 @@ class LOFDetector(BaseAnomalyDetector):
 class EnsembleAnomalyDetector(BaseAnomalyDetector):
     """Ensemble of multiple anomaly detectors"""
     
-    def __init__(self, detectors: list = None, method: str = "voting"):
+    def __init__(self, detectors: list = None, method: str = "voting", contamination: float = 0.01):
+        """Initialize ensemble with detectors, method, and contamination."""
         super().__init__("EnsembleAnomalyDetector")
         self.detectors = detectors or []
         self.method = method
+        self.contamination = contamination
         self.weights = None
         
     def add_detector(self, detector: BaseAnomalyDetector):
@@ -200,8 +206,7 @@ class EnsembleAnomalyDetector(BaseAnomalyDetector):
             raise ValueError(f"Unknown ensemble method: {self.method}")
         
         # Generate flags based on score distribution
-        contamination_rate = 0.01
-        threshold = np.quantile(ensemble_scores, 1 - contamination_rate)
+        threshold = np.quantile(ensemble_scores, 1 - self.contamination)
         flags = (ensemble_scores >= threshold).astype(int)
         
         return flags, ensemble_scores

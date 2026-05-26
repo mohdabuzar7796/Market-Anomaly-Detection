@@ -2,6 +2,8 @@
 outputs/
 plots/
 *.html
+models/
+*.joblib
 
 # Python
 __pycache__/

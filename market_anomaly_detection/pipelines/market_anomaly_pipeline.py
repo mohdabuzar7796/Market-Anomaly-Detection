@@ -1,10 +1,15 @@
 """
 Complete Market Anomaly Detection Pipeline
 """
+import json
+import logging
+from dataclasses import asdict
+from pathlib import Path
 import pandas as pd
 import numpy as np
 from typing import Dict, Any
 from sklearn.preprocessing import StandardScaler
+import joblib
 
 from market_anomaly_detection.config import PipelineConfig
 from market_anomaly_detection.data.processor import DataLoader, DataProcessor, FinancialMetricsCalculator
@@ -20,13 +25,19 @@ from market_anomaly_detection.base.detector import BasePipeline
 class MarketAnomalyDetectionPipeline(BasePipeline):
     """Complete pipeline for market anomaly detection"""
     
-    def __init__(self, config: PipelineConfig = None):
+    def __init__(self, config: PipelineConfig = None, logger: logging.Logger | None = None):
+        """Initialize pipeline components and detectors."""
         super().__init__("MarketAnomalyDetectionPipeline")
         self.config = config or PipelineConfig()
+        self.logger = logger or logging.getLogger(__name__)
         
         # Initialize components
-        self.data_loader = DataLoader(self.config.data.csv_path)
-        self.data_processor = DataProcessor()
+        self.data_loader = DataLoader(self.config.data.csv_path, logger=self.logger)
+        self.data_processor = DataProcessor(
+            required_columns=self.config.data.required_columns,
+            missing_value_strategy=self.config.data.missing_value_strategy,
+            logger=self.logger,
+        )
         self.metrics_calculator = FinancialMetricsCalculator()
         self.pca_analyzer = PCAAnalyzer(
             n_components=self.config.pca.n_components,
@@ -38,12 +49,17 @@ class MarketAnomalyDetectionPipeline(BasePipeline):
         
         # Initialize detectors
         self.detectors = self._initialize_detectors()
-        self.ensemble_detector = EnsembleAnomalyDetector(self.detectors, method="voting")
+        self.ensemble_detector = EnsembleAnomalyDetector(
+            self.detectors,
+            method="voting",
+            contamination=self.config.anomaly_detection.contamination,
+        )
         
         self.df_raw = None
         self.df_processed = None
         self.df_featured = None
         self.df_model = None
+        self.scaler = None
         
     def _initialize_detectors(self) -> list:
         """Initialize all anomaly detectors"""
@@ -65,70 +81,74 @@ class MarketAnomalyDetectionPipeline(BasePipeline):
     def run(self, data: pd.DataFrame = None) -> Dict[str, Any]:
         """Execute the complete pipeline"""
         
-        print("=" * 80)
-        print("MARKET ANOMALY DETECTION PIPELINE")
-        print("=" * 80)
+        self.logger.info("MARKET ANOMALY DETECTION PIPELINE")
         
         # Step 1: Load data
-        print("\n[Step 1] Loading data...")
+        self.logger.info("[Step 1] Loading data...")
         if data is None:
             self.df_raw = self.data_loader.load()
         else:
             self.df_raw = data.copy()
         
         # Step 2: Data processing
-        print("[Step 2] Processing data...")
+        self.logger.info("[Step 2] Processing data...")
         self.df_processed = self.data_processor.calculate(self.df_raw)
         
         # Step 3: Feature engineering
-        print("[Step 3] Engineering features...")
+        self.logger.info("[Step 3] Engineering features...")
         self.df_featured = self.metrics_calculator.calculate(self.df_processed)
         
         # Step 4: Prepare model data
-        print("[Step 4] Preparing model data...")
+        self.logger.info("[Step 4] Preparing model data...")
         feature_cols = self.config.features.feature_columns
         valid_cols = [c for c in feature_cols if c in self.df_featured.columns]
         self.df_model = self.df_featured.dropna(subset=valid_cols).copy().reset_index(drop=True)
         
         # Step 5: Anomaly detection
-        print("[Step 5] Running anomaly detectors...")
+        self.logger.info("[Step 5] Running anomaly detectors...")
         X = self.df_model[valid_cols].values
-        print(f"  Data shape before scaling: {X.shape}")
+        self.logger.info("  Data shape before scaling: %s", X.shape)
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
-        print(f"  Data shape after scaling: {X_scaled.shape}")
+        self.scaler = scaler
+        self.logger.info("  Data shape after scaling: %s", X_scaled.shape)
         
         self.results['detector_results'] = {}
         for detector in self.detectors:
             flags, scores = detector.fit_detect(X_scaled)
-            print(f"  {detector.name}: flags shape = {flags.shape}, scores shape = {scores.shape}")
+            self.logger.info(
+                "  %s: flags shape = %s, scores shape = %s",
+                detector.name,
+                flags.shape,
+                scores.shape,
+            )
             self.df_model[f'{detector.name}_flag'] = flags
             self.df_model[f'{detector.name}_score'] = scores
             self.results['detector_results'][detector.name] = (flags, scores)
         
         # Step 6: Ensemble detection
-        print("[Step 6] Creating ensemble model...")
+        self.logger.info("[Step 6] Creating ensemble model...")
         ensemble_flags, ensemble_scores = self.ensemble_detector.fit_detect(X_scaled)
         self.df_model['is_anomaly'] = ensemble_flags
         self.df_model['anomaly_score'] = ensemble_scores
         
         # Step 7: PCA analysis
-        print("[Step 7] Performing PCA analysis...")
+        self.logger.info("[Step 7] Performing PCA analysis...")
         pca_results = self.pca_analyzer.analyze(self.df_model, valid_cols)
         self.results['pca'] = pca_results
         
         # Step 8: Correlation analysis
-        print("[Step 8] Analyzing correlations...")
+        self.logger.info("[Step 8] Analyzing correlations...")
         corr_results = self.correlation_analyzer.analyze(self.df_model, valid_cols)
         self.results['correlation'] = corr_results
         
         # Step 9: Anomaly statistics
-        print("[Step 9] Computing anomaly statistics...")
+        self.logger.info("[Step 9] Computing anomaly statistics...")
         stats_results = self.anomaly_stats.analyze(self.df_model, 'is_anomaly')
         self.results['anomaly_stats'] = stats_results
         
         # Step 10: Visualizations
-        print("[Step 10] Generating visualizations...")
+        self.logger.info("[Step 10] Generating visualizations...")
         threshold = np.quantile(ensemble_scores, 0.99)
         
         self.results['visualizations'] = {
@@ -144,17 +164,70 @@ class MarketAnomalyDetectionPipeline(BasePipeline):
             )
         }
         
-        print("\n" + "=" * 80)
-        print("PIPELINE COMPLETED SUCCESSFULLY")
-        print("=" * 80)
-        print(f"\nResults Summary:")
-        print(f"  - Total Records: {stats_results['total_records']}")
-        print(f"  - Anomalies Detected: {stats_results['anomaly_count']}")
-        print(f"  - Anomaly Rate: {stats_results['anomaly_rate']}%")
-        print(f"  - PCA Components: {len(pca_results['explained_variance'])}")
-        print(f"  - Explained Variance: {[f'{v:.2%}' for v in pca_results['explained_variance']]}")
+        self.logger.info("PIPELINE COMPLETED SUCCESSFULLY")
+        self.logger.info("Results Summary:")
+        self.logger.info("  - Total Records: %s", stats_results["total_records"])
+        self.logger.info("  - Anomalies Detected: %s", stats_results["anomaly_count"])
+        self.logger.info("  - Anomaly Rate: %s%%", stats_results["anomaly_rate"])
+        self.logger.info("  - PCA Components: %s", len(pca_results["explained_variance"]))
+        self.logger.info(
+            "  - Explained Variance: %s",
+            [f"{v:.2%}" for v in pca_results["explained_variance"]],
+        )
         
         return self.results
+
+    def save_artifacts(self, output_dir: str | Path = "models") -> Path:
+        """Save trained artifacts and metadata for reproducibility."""
+        output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Save scaler used for model input
+        if self.scaler is not None:
+            joblib.dump(self.scaler, output_dir / "scaler.joblib")
+
+        # Save PCA artifacts
+        if self.pca_analyzer.pca is not None:
+            joblib.dump(self.pca_analyzer.pca, output_dir / "pca.joblib")
+        if getattr(self.pca_analyzer, "scaler", None) is not None:
+            joblib.dump(self.pca_analyzer.scaler, output_dir / "pca_scaler.joblib")
+
+        # Save detector models where available
+        for detector in self.detectors:
+            model = getattr(detector, "model", None)
+            if model is None:
+                continue
+            name = detector.name.replace("Detector", "").lower()
+            joblib.dump(model, output_dir / f"{name}.joblib")
+
+        # Save configuration and summary metadata
+        def _to_jsonable(value):
+            """Convert values into JSON-serializable forms."""
+            if isinstance(value, Path):
+                return str(value)
+            if isinstance(value, dict):
+                return {k: _to_jsonable(v) for k, v in value.items()}
+            if isinstance(value, list):
+                return [_to_jsonable(v) for v in value]
+            if isinstance(value, tuple):
+                return [_to_jsonable(v) for v in value]
+            return value
+
+        config_dict = _to_jsonable(asdict(self.config))
+
+        summary = {
+            "records": int(self.results.get("anomaly_stats", {}).get("total_records", 0)),
+            "anomalies": int(self.results.get("anomaly_stats", {}).get("anomaly_count", 0)),
+            "anomaly_rate": float(self.results.get("anomaly_stats", {}).get("anomaly_rate", 0.0)),
+            "pca_explained_variance": self.results.get("pca", {}).get("explained_variance", []),
+        }
+
+        with (output_dir / "config.json").open("w", encoding="utf-8") as f:
+            json.dump(config_dict, f, indent=2)
+        with (output_dir / "summary.json").open("w", encoding="utf-8") as f:
+            json.dump(summary, f, indent=2)
+
+        return output_dir
     
     def get_results(self) -> pd.DataFrame:
         """Get the complete results dataframe"""
@@ -166,7 +239,7 @@ class MarketAnomalyDetectionPipeline(BasePipeline):
             output_path = str(self.config.output_dir / "anomaly_detection_results.csv")
         
         self.df_model.to_csv(output_path, index=False)
-        print(f"Results exported to {output_path}")
+        self.logger.info("Results exported to %s", output_path)
         
         return output_path
 

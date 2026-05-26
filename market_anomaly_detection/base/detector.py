@@ -11,6 +11,7 @@ class BaseAnomalyDetector(ABC):
     """Abstract base class for anomaly detectors"""
     
     def __init__(self, name: str):
+        """Initialize the detector with a display name."""
         self.name = name
         self.is_fitted = False
         self.model = None
@@ -43,6 +44,7 @@ class BasePipeline(ABC):
     """Abstract base class for pipelines"""
     
     def __init__(self, name: str):
+        """Initialize the pipeline with a display name."""
         self.name = name
         self.results = {}
         
@@ -61,6 +63,7 @@ class BaseFeatureCalculator(ABC):
     """Abstract base class for feature calculation"""
     
     def __init__(self, name: str):
+        """Initialize the feature calculator with a display name."""
         self.name = name
         
     @abstractmethod
@@ -73,6 +76,7 @@ class BaseAnalyzer(ABC):
     """Abstract base class for analysis"""
     
     def __init__(self, name: str):
+        """Initialize the analyzer with a display name."""
         self.name = name
         self.analysis_results = {}
         

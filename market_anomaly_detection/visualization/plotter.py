@@ -14,6 +14,7 @@ class AnomalyVisualizer:
     """Visualizations for anomaly detection results"""
     
     def __init__(self, config: VisualizationConfig = None):
+        """Store visualization configuration."""
         self.config = config or VisualizationConfig()
         
     def plot_price_with_anomalies(self, data: pd.DataFrame, 
