@@ -33,3 +33,13 @@ Thumbs.db
 # Data
 *.csv
 data/
+
+# Packaging
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Python packaging metadata
+pip-wheel-metadata/
