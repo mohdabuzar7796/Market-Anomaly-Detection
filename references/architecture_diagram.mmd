@@ -1,0 +1,73 @@
+%%{init: {"flowchart": {"rankSpacing": 150, "nodeSpacing": 100}}}%%
+flowchart TD
+    %% Base Interfaces
+    subgraph BaseLayer [Base Interfaces]
+        base_det[base/interfaces.py]
+    end
+
+    %% Root Level Utilities
+    subgraph RootLevel [Root Package Utilities]
+        cfg[config.py]
+        ds[dataset.py]
+        feat[features.py]
+    end
+
+    %% Data Layer
+    subgraph DataLayer [Data Layer]
+        dp[data_processing/processor.py]
+    end
+
+    %% Anomaly Detection Layer
+    subgraph DetectionLayer [Anomaly Detection Layer]
+        stat[anomaly_models/statistical_models.py]
+        ml[anomaly_models/machine_learning_models.py]
+        ens[anomaly_models/ensemble_model.py]
+    end
+
+    %% Analysis Layer
+    subgraph AnalysisLayer [Analysis Layer]
+        pca[post_analysis/statistical_analyzers.py]
+    end
+
+    %% Visualization Layer
+    subgraph VisualizationLayer [Visualization Layer]
+        viz[visualization/plotter.py]
+    end
+
+    %% Pipeline Orchestration
+    subgraph PipelineLayer [Pipeline Orchestration]
+        pipe[pipelines/orchestrator.py]
+    end
+
+    %% Execution Entry Points
+    subgraph ExecutionLayer [Execution / Entry Points]
+        cli[execution/runner.py]
+    end
+
+    %% ==========================================
+    %% Inter-File Connections / Data Flow
+    %% ==========================================
+
+    %% Entry points mapping to Pipeline
+    cli ==>|Instantiates & Runs| pipe
+
+    %% Pipeline Orchestrator logic
+    pipe -.->|Loads config from| cfg
+    pipe ==>|1. Cleans & Engineers Features| dp
+    pipe ==>|2. Runs Individual Models| stat
+    pipe ==>|3. Runs Individual Models| ml
+    pipe ==>|4. Combines Output Logic| ens
+    pipe ==>|5. Computes Stats & PCA| pca
+    pipe ==>|6. Generates HTML Dashboards| viz
+
+    %% Utility wrappers mapping
+    ds -.->|Wraps DataLoader| dp
+    feat -.->|Wraps DataProcessor| dp
+
+    %% Inheritance from Base Interfaces (Parent -> Child)
+    base_det -.->|Inherited by| dp
+    base_det -.->|Inherited by| stat
+    base_det -.->|Inherited by| ml
+    base_det -.->|Inherited by| ens
+    base_det -.->|Inherited by| pca
+    base_det -.->|Inherited by| pipe

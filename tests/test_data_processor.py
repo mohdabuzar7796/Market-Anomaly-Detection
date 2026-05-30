@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from market_anomaly_detection.data.processor import DataProcessor
+from market_anomaly_detection.data_processing.processor import DataProcessor
 
 
 def test_validate_schema_missing_columns_raises():

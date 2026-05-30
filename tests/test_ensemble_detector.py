@@ -1,7 +1,7 @@
 import numpy as np
 
-from market_anomaly_detection.base.detector import BaseAnomalyDetector
-from market_anomaly_detection.detectors.ensemble import EnsembleAnomalyDetector
+from market_anomaly_detection.base.interfaces import BaseAnomalyDetector
+from market_anomaly_detection.anomaly_models.ensemble_model import EnsembleAnomalyDetector
 
 
 class DummyDetector(BaseAnomalyDetector):

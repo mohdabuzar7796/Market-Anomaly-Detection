@@ -1,18 +1,21 @@
-.PHONY: data run format lint test clean
+.PHONY: data run format lint test clean diagram
 
-PYTHON := python
+PYTHON := uv run python
 
 run:
-	$(PYTHON) -m market_anomaly_detection.modeling.predict
+	uv run python -m market_anomaly_detection.execution.runner
+
+diagram:
+	npx -y @mermaid-js/mermaid-cli -i references/architecture_diagram.mmd -o references/architecture_diagram.svg
 
 data:
 	@echo "Data directories already created under data/"
 
 format:
-	$(PYTHON) -m black market_anomaly_detection
+	uvx ruff format market_anomaly_detection
 
 lint:
-	$(PYTHON) -m flake8 market_anomaly_detection
+	uvx ruff check market_anomaly_detection
 
 test:
 	$(PYTHON) -m pytest

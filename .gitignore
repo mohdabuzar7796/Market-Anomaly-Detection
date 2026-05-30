@@ -1,8 +1,5 @@
-# Output and plot files
-outputs/
-plots/
+# Output and generated files
 *.html
-models/
 *.joblib
 
 # Python
@@ -14,7 +11,8 @@ __pycache__/
 env/
 venv/
 ENV/
-.venv
+.venv*/
+*.egg-info/
 
 # Jupyter
 .ipynb_checkpoints/
@@ -30,6 +28,22 @@ ENV/
 .DS_Store
 Thumbs.db
 
-# Data
+# Data (large files — keep structure, not content)
 *.csv
-data/
+data/*
+!data/.gitkeep
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Caches
+.pytest_cache/
+.ruff_cache/
+
+# Dynamic Artifacts
+models/*
+!models/.gitkeep
+reports/*
+!reports/.gitkeep
+!reports/figures/
+reports/figures/*
+!reports/figures/.gitkeep
