@@ -11,7 +11,6 @@ End-to-end anomaly detection pipeline for MSFT hourly market data.
 - references/ - Supporting materials
 - reports/ - Generated analysis outputs
 
-This layout follows the Cookiecutter Data Science structure.
 
 ## Quick Start & Setup
 

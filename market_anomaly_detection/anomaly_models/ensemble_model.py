@@ -65,7 +65,7 @@ class EnsembleAnomalyDetector(BaseAnomalyDetector):
             threshold = np.quantile(ensemble_scores, 1 - self.contamination)
             flags = (ensemble_scores >= threshold).astype(int)
         elif self.method == "combined":
-            # Replicate notebook's exact combined logic
+            # Replicate Notebook's Logic
             z_idx, iqr_idx, if_idx, lof_idx = -1, -1, -1, -1
             for i, d in enumerate(self.detectors):
                 if d.name == "ZScoreDetector":

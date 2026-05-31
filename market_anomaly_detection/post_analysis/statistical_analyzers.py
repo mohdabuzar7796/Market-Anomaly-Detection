@@ -73,7 +73,7 @@ class PCAAnalyzer(BaseAnalyzer):
 class CorrelationAnalyzer(BaseAnalyzer):
     """Correlation analysis"""
 
-    def __init__(self, method: str = "spearman"):
+    def __init__(self, method: str = "pearson"):
         """Set the correlation method used for analysis."""
         super().__init__("CorrelationAnalyzer")
         self.method = method
