@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "market_anomaly_detection"
+version = "1.0.0"
+description = "End-to-end market anomaly detection pipeline"
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+	"ipykernel==7.2.0",
+	"ipython==9.12.0",
+	"joblib==1.5.3",
+	"matplotlib==3.10.8",
+	"nbformat==5.10.4",
+	"numpy==2.4.3",
+	"pandas==3.0.2",
+	"plotly==6.6.0",
+	"pytest==9.0.2",
+	"scikit-learn==1.8.0",
+	"scipy==1.17.1",
+	"seaborn==0.13.2",
+	"shap==0.51.0",
+	"statsmodels==0.14.6",
+]
+
+[project.scripts]
+market-anomaly-detection = "market_anomaly_detection.execution.runner:cli_main"
+
+[tool.uv]
+environments = [
+    "sys_platform == 'win32'",
+    "sys_platform == 'darwin'",
+    "sys_platform == 'linux'",
+]
+[tool.ruff]
+line-length = 100
+
+[tool.setuptools.packages.find]
+include = ["market_anomaly_detection*"]
